@@ -18,7 +18,7 @@ chmod +x /app/Asahi.WebServices
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 
-RUN apt -y update && apt -y upgrade && apt install -y --no-install-recommends ffmpeg
+RUN apt -y update && apt install -y --no-install-recommends ffmpeg
 
 WORKDIR /app
 
