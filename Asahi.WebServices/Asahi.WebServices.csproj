@@ -28,11 +28,11 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
-<!--    <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">-->
-<!--        <Exec Command="git describe &#45;&#45;long &#45;&#45;always &#45;&#45;dirty &#45;&#45;exclude=* &#45;&#45;abbrev=8" IgnoreExitCode="False">-->
-<!--            <Output PropertyName="SourceRevisionId" TaskParameter="ConsoleOutput"/>-->
-<!--        </Exec>-->
-<!--    </Target>-->
+    <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">
+        <Exec Command="git describe --long --always --dirty --exclude=* --abbrev=8" IgnoreExitCode="False">
+            <Output PropertyName="SourceRevisionId" TaskParameter="ConsoleOutput"/>
+        </Exec>
+    </Target>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
