@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Asahi.WebServices", "Asahi.WebServices\Asahi.WebServices.csproj", "{07AB288E-4C33-413A-9D8B-DC36E98FC216}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{07AB288E-4C33-413A-9D8B-DC36E98FC216}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07AB288E-4C33-413A-9D8B-DC36E98FC216}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07AB288E-4C33-413A-9D8B-DC36E98FC216}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07AB288E-4C33-413A-9D8B-DC36E98FC216}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

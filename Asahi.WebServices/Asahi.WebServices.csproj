@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+    <Sdk Name="DotNet.ReproducibleBuilds.Isolated" Version="1.2.25" />
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <ApplicationIcon>Asahi.ico</ApplicationIcon>
+
+        <Version>0.0.0</Version>
+
+        <Copyright>enonibobble</Copyright>
+        <Authors>enonibobble</Authors>
+        <Company>enonibobble</Company>
+
+        <!-- not necessary but -->
+        <RepositoryUrl>https://github.com/SquirrelKiev/Asahi.WebServices.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+
+        <SourceControlInformationFeatureSupported>true</SourceControlInformationFeatureSupported>
+
+        <PackageReadmeFile>../README.md</PackageReadmeFile>
+
+        <LangVersion>default</LangVersion>
+        
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+<!--    <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">-->
+<!--        <Exec Command="git describe &#45;&#45;long &#45;&#45;always &#45;&#45;dirty &#45;&#45;exclude=* &#45;&#45;abbrev=8" IgnoreExitCode="False">-->
+<!--            <Output PropertyName="SourceRevisionId" TaskParameter="ConsoleOutput"/>-->
+<!--        </Exec>-->
+<!--    </Target>-->
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
+        <PackageReference Include="Scalar.AspNetCore" Version="2.4.4" />
+        <PackageReference Include="Serilog" Version="4.3.0" />
+        <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+        <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+        <PackageReference Include="Serilog.Sinks.Seq" Version="9.0.0" />
+    </ItemGroup>
+
+</Project>
