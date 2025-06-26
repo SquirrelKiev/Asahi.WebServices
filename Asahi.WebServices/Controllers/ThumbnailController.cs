@@ -63,7 +63,7 @@ public class ThumbnailController(
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest,
         "application/problem+json")]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError, "application/problem+json")]
-    [OutputCache(VaryByRouteValueNames = [nameof(base64Url)])]
+    [OutputCache(VaryByRouteValueNames = [nameof(base64Url)], Duration = 60 * 60)] // 1 hour
     public async Task<ActionResult<byte[]>> GetThumbnail([FromRoute] string base64Url)
     {
         if (!Base64Url.IsValid(base64Url))
