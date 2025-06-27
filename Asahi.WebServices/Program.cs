@@ -42,8 +42,7 @@ builder.Services.AddSerilog((services, lc) => lc
     .Enrich.FromLogContext()
     .WriteTo.Console(theme: AnsiConsoleTheme.Sixteen));
 
-builder.Services.AddOutputCache();
-builder.Services.AddSingleton<ThumbnailRequestDeduplicator>();
+builder.Services.AddSingleton<ThumbnailGenerator>();
 
 var app = builder.Build();
 
@@ -57,8 +56,6 @@ app.MapScalarApiReference();
 app.UseStaticFiles();
 
 app.UseHostFiltering();
-
-app.UseOutputCache();
 
 app.MapControllers();
 
