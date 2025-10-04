@@ -1,6 +1,7 @@
+using System.Reflection;
+using Asahi.WebServices;
 using Asahi.WebServices.Controllers;
 using Microsoft.Extensions.Options;
-using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -18,6 +19,26 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<OpenApiSettings>(
     builder.Configuration.GetSection("OpenApi")
 );
+
+builder.Services.Configure<AllowedDomainsSettings>(
+    builder.Configuration.GetSection("AllowedDomains")
+);
+
+var currentAssembly = Assembly.GetExecutingAssembly();
+var projectName = currentAssembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product;
+var informationalVersion = currentAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+    ?.InformationalVersion;
+var repositoryUrl = currentAssembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(x => x.Key == "RepositoryUrl")?.Value;
+
+builder.Services.ConfigureHttpClientDefaults(x =>
+{
+    x.RemoveAllLoggers().ConfigureHttpClient(client =>
+    {
+        client.DefaultRequestHeaders.UserAgent.ParseAdd(
+            $"{projectName}/{informationalVersion} (+{repositoryUrl})");
+        client.Timeout = TimeSpan.FromSeconds(10);
+    });
+});
 
 builder.Services.AddControllers();
 
@@ -43,6 +64,7 @@ builder.Services.AddSerilog((services, lc) => lc
     .WriteTo.Console(theme: AnsiConsoleTheme.Sixteen));
 
 builder.Services.AddSingleton<ThumbnailGenerator>();
+builder.Services.AddSingleton<AllowedDomainsService>();
 
 var app = builder.Build();
 
@@ -60,14 +82,3 @@ app.UseHostFiltering();
 app.MapControllers();
 
 await app.RunAsync();
-
-/// <summary>
-/// OpenAPI customizable settings.
-/// </summary>
-public class OpenApiSettings
-{
-    /// <summary>
-    /// A list of server endpoints.
-    /// </summary>
-    public List<OpenApiServer> Servers { get; init; } = [];
-}

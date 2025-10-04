@@ -29,7 +29,7 @@
     </PropertyGroup>
 
     <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">
-        <Exec Command="git describe --long --always --dirty --exclude=* --abbrev=8" IgnoreExitCode="False">
+        <Exec Command="git describe --long --always --dirty --exclude=*" IgnoreExitCode="False" ConsoleToMsBuild="true">
             <Output PropertyName="SourceRevisionId" TaskParameter="ConsoleOutput"/>
         </Exec>
     </Target>
@@ -42,6 +42,7 @@
         <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
         <PackageReference Include="Serilog.Sinks.Seq" Version="9.0.0" />
+        <PackageReference Include="System.IO.Hashing" Version="9.0.9" />
     </ItemGroup>
 
 </Project>

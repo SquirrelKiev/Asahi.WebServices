@@ -1,10 +1,9 @@
 ﻿using System.Buffers.Text;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Security.Cryptography;
+using System.IO.Hashing;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Asahi.WebServices.Controllers;
@@ -16,37 +15,54 @@ public class ThumbnailGenerator(ILogger<ThumbnailGenerator> logger)
 {
     // Lazy is here because it turns out that ConcurrentDictionary.GetOrAdd can run the value factory multiple times
     // for the same key (publication only)
-    // lazy on the other hand is thread safe on both execution and publication
-    private readonly ConcurrentDictionary<string, Lazy<Task<byte[]?>>> ongoingRequests = [];
+    // Lazy, on the other hand, is thread safe on both execution and publication
+    private readonly ConcurrentDictionary<string, Lazy<Task<ThumbnailEntry>>> ongoingRequests = [];
     private readonly MemoryCache cache = new(new MemoryCacheOptions() { SizeLimit = 1000 * 1000 * 1000 }); // 1GB
+
+    /// <summary>
+    /// Retrieves a cached thumbnail for the given URL.
+    /// </summary>
+    /// <param name="url">The URL to retrieve the cached result from</param>
+    /// <returns></returns>
+    public ThumbnailEntry GetCachedThumbnail(string url)
+    {
+        if (cache.TryGetValue(url, out ThumbnailEntry cachedThumbnail))
+        {
+            return cachedThumbnail;
+        }
+        else
+        {
+            return default;
+        }
+    }
 
     /// <summary>
     /// Generates a thumbnail for the given video URL. If a thumbnail has already been generated for the given URL within the last hour,
     /// it returns the cached thumbnail instead.
     /// </summary>
     /// <param name="url">The URL of the video.</param>
-    /// <returns></returns>
-    public Task<byte[]?> GetThumbnailAsync(string url)
+    /// <returns>A 360p PNG thumbnail.</returns>
+    public Task<ThumbnailEntry> GetThumbnailAsync(string url)
     {
-        if (cache.TryGetValue(url, out byte[]? cachedThumbnail))
+        if (cache.TryGetValue(url, out ThumbnailEntry cachedThumbnail))
         {
             logger.LogInformation("Found cached thumbnail for url {url}", url);
 
             return Task.FromResult(cachedThumbnail);
         }
 
-        var lazyTask = new Lazy<Task<byte[]?>>(async () =>
+        var lazyTask = new Lazy<Task<ThumbnailEntry>>(async () =>
         {
             try
             {
                 var val = await GenerateThumbnailAsync(url);
-                
-                if(val != null)
+
+                if (val != default)
                 {
                     cache.Set(url, val, new MemoryCacheEntryOptions()
                     {
                         AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
-                        Size = val.Length
+                        Size = val.Thumbnail.Length
                     });
                 }
 
@@ -57,7 +73,7 @@ public class ThumbnailGenerator(ILogger<ThumbnailGenerator> logger)
                 ongoingRequests.Remove(url, out _);
             }
         });
-        
+
         var runningLazyTask = ongoingRequests.GetOrAdd(url, lazyTask);
 
         if (ReferenceEquals(runningLazyTask, lazyTask))
@@ -71,8 +87,8 @@ public class ThumbnailGenerator(ILogger<ThumbnailGenerator> logger)
 
         return runningLazyTask.Value;
     }
-    
-    private async Task<byte[]?> GenerateThumbnailAsync(string url)
+
+    private async Task<ThumbnailEntry> GenerateThumbnailAsync(string url)
     {
         // optimizing for speed not size here, so doing straight to png.
         // in the context of web, output seeking is actually faster than input seeking for this timestamp from my benchmarks
@@ -114,12 +130,20 @@ public class ThumbnailGenerator(ILogger<ThumbnailGenerator> logger)
             logger.LogError("Failed to generate thumbnail for url {url}, code {code}: {error}", url, process.ExitCode,
                 error);
 
-            return null;
+            return default;
         }
 
         var thumbnailData = memoryStream.ToArray();
-        return thumbnailData;
+        return new ThumbnailEntry(url, thumbnailData, XxHash3.HashToUInt64(thumbnailData));
     }
+
+    /// <summary>
+    /// A thumbnail and relevant data.
+    /// </summary>
+    /// <param name="Url"></param>
+    /// <param name="Thumbnail"></param>
+    /// <param name="Hash"></param>
+    public readonly record struct ThumbnailEntry(string Url, byte[] Thumbnail, ulong Hash);
 }
 
 /// <summary>
@@ -127,7 +151,7 @@ public class ThumbnailGenerator(ILogger<ThumbnailGenerator> logger)
 /// </summary>
 [ApiController]
 public class ThumbnailController(
-    ILogger<ThumbnailController> logger,
+    AllowedDomainsService allowedDomainsService,
     ThumbnailGenerator thumbGenerator) : ControllerBase
 {
     /// <summary>
@@ -150,33 +174,51 @@ public class ThumbnailController(
     {
         if (!Base64Url.IsValid(base64Url))
         {
-            var thing = new ModelStateDictionary();
-            thing.AddModelError(nameof(base64Url), "Must be a valid base64url string.");
+            ModelState.AddModelError(nameof(base64Url), "Must be a valid base64url string.");
 
-            return ValidationProblem(thing);
+            return ValidationProblem();
         }
 
         var decodedUrl = Base64Url.DecodeFromChars(base64Url);
         var url = Encoding.UTF8.GetString(decodedUrl);
 
-        if (!CompiledRegex.AnimeThemesThemeRegex().IsMatch(url))
+        if (!allowedDomainsService.IsDomainAllowed(url))
         {
-            var thing = new ModelStateDictionary();
-            thing.AddModelError(nameof(url), "Invalid URL. Only animethemes.moe is supported at the moment.");
+            var allowedDomainsString =
+                string.Join(';', allowedDomainsService.AllowedDomainRegexStrings);
 
-            return ValidationProblem(thing);
+            ModelState.AddModelError(nameof(base64Url),
+                $"Disallowed URL. Allowed domain regexes: {allowedDomainsString}");
+
+            return ValidationProblem();
+        }
+
+        string? requesterEtag = null;
+        if (Request.Headers.IfNoneMatch.Count > 0)
+        {
+            requesterEtag = Request.Headers.IfNoneMatch.ToString();
+
+            var cachedThumb = thumbGenerator.GetCachedThumbnail(url);
+
+            if (cachedThumb != default && cachedThumb.Hash.ToString("X") == requesterEtag)
+            {
+                return StatusCode(StatusCodes.Status304NotModified);
+            }
         }
 
         var thumbnail = await thumbGenerator.GetThumbnailAsync(url);
 
-        if (thumbnail == null)
+        if (thumbnail == default)
         {
             return Problem("Failed to generate thumbnail. Does the requested video exist?");
         }
-        else
+        
+        if (requesterEtag != null && thumbnail.Hash.ToString("X") == requesterEtag)
         {
-            Response.Headers.ETag = string.Concat(SHA1.HashData(thumbnail).Select(x => x.ToString("x2")));
-            return File(thumbnail, "image/png");
+            return StatusCode(StatusCodes.Status304NotModified);
         }
+
+        Response.Headers.ETag = string.Concat(thumbnail.Hash.ToString("X"));
+        return File(thumbnail.Thumbnail, "image/png");
     }
 }

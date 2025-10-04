@@ -7,6 +7,6 @@ namespace Asahi.WebServices;
 /// </summary>
 public static partial class CompiledRegex
 {
-    [GeneratedRegex(@"^https:\/\/v\.animethemes\.moe\/[a-zA-Z0-9\-]+\.webm$")]
-    public static partial Regex AnimeThemesThemeRegex();
+    // [GeneratedRegex(@"^https:\/\/v\.animethemes\.moe\/[a-zA-Z0-9\-]+\.webm$")]
+    // public static partial Regex AnimeThemesThemeRegex();
 }
