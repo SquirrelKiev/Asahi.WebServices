@@ -161,13 +161,11 @@ public class ThumbnailController(
     /// <returns>A 360p PNG thumbnail from the video, captured at 20 seconds in.</returns>
     /// <response code="200">Returns the generated thumbnail as a PNG image</response>
     /// <response code="400">The provided URL is invalid or not supported</response>
-    /// <response code="500">An error occurred during thumbnail generation</response>
     [HttpGet]
     [Route("/api/thumb/{base64Url}.png")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK, "image/png")]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest,
         "application/problem+json")]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError, "application/problem+json")]
     // output cache was causing strange issues, rolling my own
     // [OutputCache(VaryByRouteValueNames = [nameof(base64Url)], Duration = 60 * 60)] // 1 hour
     public async Task<ActionResult<byte[]>> GetThumbnail([FromRoute] string base64Url)

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build-env
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build-env
 
 WORKDIR /source
 
@@ -16,7 +16,7 @@ RUN set -xe; \
 dotnet publish Asahi.WebServices/ -c Release -a $TARGETARCH -o /app; \
 chmod +x /app/Asahi.WebServices
 
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 
 RUN apt -y update && apt install -y --no-install-recommends ffmpeg
 

@@ -23,6 +23,9 @@ public class ProxyController(AllowedDomainsService allowedDomainsService, HttpCl
     /// <response code="400">The provided URL is invalid or not allowed.</response>
     [HttpGet]
     [Route("/api/proxy/{base64Url}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest,
+        "application/problem+json")]
     public async Task<ActionResult> ProxyGet([FromRoute] string base64Url)
     {
         if (!Base64Url.IsValid(base64Url))
