@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 using Asahi.WebServices;
 using Asahi.WebServices.Controllers;
@@ -42,7 +43,8 @@ builder.Services.ConfigureHttpClientDefaults(x =>
 
 builder.Services.AddControllers();
 
-// in .NET 10 this gets support for handling xml docs. just going to wait until then to add proper OpenApi docs
+builder.Services.AddHealthChecks();
+
 builder.Services.AddOpenApi("v1", openApi =>
 {
     openApi.AddDocumentTransformer((document, context, _) =>
@@ -68,6 +70,32 @@ builder.Services.AddSingleton<AllowedDomainsService>();
 
 var app = builder.Build();
 
+try
+{
+    var processInfo = new ProcessStartInfo("ffmpeg", ["-version"])
+    {
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        UseShellExecute = false,
+        CreateNoWindow = true
+    };
+    var ffmpegVersionCheck = Process.Start(processInfo);
+    if (ffmpegVersionCheck == null)
+    {
+        throw new Exception("ffmpeg process never started. (More specifically, Process.Start returned null for whatever reason)");
+    }
+    await ffmpegVersionCheck.WaitForExitAsync();
+    if (ffmpegVersionCheck.ExitCode != 0)
+    {
+        throw new Exception($"Exited with non-zero exit code. {ffmpegVersionCheck.ExitCode}");
+    }
+}
+catch (Exception e)
+{
+    app.Logger.LogCritical(e, "ffmpeg dependency check failed. Please make sure ffmpeg is installed and working correctly. (Run ffmpeg -version)");
+    return 1;
+}
+
 app.UseForwardedHeaders();
 
 app.UseSerilogRequestLogging();
@@ -82,3 +110,5 @@ app.UseHostFiltering();
 app.MapControllers();
 
 await app.RunAsync();
+
+return 0;
