@@ -17,7 +17,7 @@ public class AllowedDomainsService
     public IReadOnlyCollection<string> AllowedDomainRegexStrings => settings.CurrentValue.Regexes;
     private IReadOnlyCollection<Regex> allowedDomains = [];
 
-    /// 
+    /// <summary>Creates an instance of <see cref="AllowedDomainsService"/>.</summary>
     public AllowedDomainsService(IOptionsMonitor<AllowedDomainsSettings> settings, ILogger<AllowedDomainsService> logger)
     {
         this.settings = settings;

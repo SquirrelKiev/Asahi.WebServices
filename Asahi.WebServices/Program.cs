@@ -25,6 +25,10 @@ builder.Services.Configure<AllowedDomainsSettings>(
     builder.Configuration.GetSection("AllowedDomains")
 );
 
+builder.Services.Configure<UrlSigningSettings>(
+    builder.Configuration.GetSection("UrlSigning")
+);
+
 var currentAssembly = Assembly.GetExecutingAssembly();
 var projectName = currentAssembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product;
 var informationalVersion = currentAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
@@ -65,10 +69,21 @@ builder.Services.AddSerilog((services, lc) => lc
     .Enrich.FromLogContext()
     .WriteTo.Console(theme: AnsiConsoleTheme.Sixteen));
 
+builder.Services.AddSingleton<UrlSignatureVerifierService>();
 builder.Services.AddSingleton<ThumbnailGenerator>();
 builder.Services.AddSingleton<AllowedDomainsService>();
 
 var app = builder.Build();
+
+try
+{
+    app.Services.GetRequiredService<UrlSignatureVerifierService>();
+}
+catch (Exception ex)
+{
+    app.Logger.LogCritical(ex, "UrlSignatureVerifierService failed to initialize. Make sure the UrlSigningSettings are configured correctly.");
+    return 2;
+}
 
 try
 {

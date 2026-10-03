@@ -12,21 +12,27 @@ namespace Asahi.WebServices.Controllers;
 /// The Proxy controller.
 /// </summary>
 [ApiController]
-public class ProxyController(AllowedDomainsService allowedDomainsService, HttpClient client) : ControllerBase
+public class ProxyController(
+    AllowedDomainsService allowedDomainsService,
+    UrlSignatureVerifierService urlSignatureVerifier,
+    HttpClient client) : ControllerBase
 {
     /// <summary>
     /// Returns the content of the given URL.
     /// </summary>
     /// <param name="base64Url">The base64-encoded URL to proxy.</param>
-    /// <returns>A 360p PNG thumbnail from the video, captured at 20 seconds in.</returns>
+    /// <param name="sig">HMAC signature of the given URL.</param>
+    /// <returns>The content of the given URL.</returns>
     /// <response code="200">Returns the proxied content.</response>
     /// <response code="400">The provided URL is invalid or not allowed.</response>
+    /// <response code="403">Either the provided signature is invalid, or a signature was not provided and the URL is not allowlisted.</response>
     [HttpGet]
     [Route("/api/proxy/{base64Url}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest,
         "application/problem+json")]
-    public async Task<ActionResult> ProxyGet([FromRoute] string base64Url)
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> ProxyGet([FromRoute] string base64Url, [FromQuery] string? sig)
     {
         if (!Base64Url.IsValid(base64Url))
         {
@@ -38,6 +44,11 @@ public class ProxyController(AllowedDomainsService allowedDomainsService, HttpCl
 
         var decodedUrl = Base64Url.DecodeFromChars(base64Url);
         var url = Encoding.UTF8.GetString(decodedUrl);
+
+        if (!urlSignatureVerifier.IsAuthorized(UrlSignature.UrlSignaturePurposes.Proxy, url, sig))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden);
+        }
 
         if (!allowedDomainsService.IsDomainAllowed(url))
         {
