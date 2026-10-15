@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 // TODO: this should ideally support setting user agent, referer, and cloudflare captchas
-namespace Asahi.WebServices.Controllers;
+namespace Asahi.WebServices.Proxy;
 
 /// <summary>
 /// The Proxy controller.

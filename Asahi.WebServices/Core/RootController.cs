@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Asahi.WebServices.Controllers;
+namespace Asahi.WebServices;
 
 /// <summary>
 /// Controller for the "/" route. 

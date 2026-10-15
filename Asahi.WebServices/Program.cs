@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using Asahi.WebServices;
-using Asahi.WebServices.Controllers;
+using Asahi.WebServices.Thumbnails;
 using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 using Serilog;

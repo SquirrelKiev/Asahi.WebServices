@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Asahi.WebServices.Controllers;
+namespace Asahi.WebServices.Health;
 
 /// <summary>
 /// Health-related info about the service.
