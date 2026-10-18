@@ -1,10 +1,13 @@
 using System.Diagnostics;
 using System.Reflection;
+using Amazon.S3;
 using Asahi.WebServices;
+using Asahi.WebServices.ThemesProxy;
 using Asahi.WebServices.Database;
 using Asahi.WebServices.Thumbnails;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using NodaTime;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -31,6 +34,10 @@ builder.Services.Configure<UrlSigningSettings>(
     builder.Configuration.GetSection("UrlSigning")
 );
 
+builder.Services.Configure<StorageSettings>(
+    builder.Configuration.GetSection("Storage")
+);
+
 var currentAssembly = Assembly.GetExecutingAssembly();
 var projectName = currentAssembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product;
 var informationalVersion = currentAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
@@ -50,7 +57,7 @@ builder.Services.ConfigureHttpClientDefaults(x =>
 builder.Services.AddDbContextFactory<AsahiDbContext>((services, options) =>
 {
     options.UseNpgsql(services.GetRequiredService<IConfiguration>().GetConnectionString("Asahi.WebServices"),
-        x => x.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
+        x => x.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery).UseNodaTime());
 });
 
 builder.Services.AddControllers();
@@ -77,9 +84,43 @@ builder.Services.AddSerilog((services, lc) => lc
     .Enrich.FromLogContext()
     .WriteTo.Console(theme: AnsiConsoleTheme.Sixteen));
 
+builder.Services.AddSingleton<IClock>(SystemClock.Instance);
+
 builder.Services.AddSingleton<UrlSignatureVerifierService>();
+
+// thumbs
 builder.Services.AddSingleton<ThumbnailGenerator>();
 builder.Services.AddSingleton<AllowedDomainsService>();
+
+// themes
+var storageSettings = builder.Configuration.GetSection("Storage").Get<StorageSettings>();
+if (storageSettings == null)
+{
+    Log.Fatal("Storage settings are not configured");
+    await Log.CloseAndFlushAsync();
+    return 3;
+}
+if (storageSettings.StorageType == StorageType.S3)
+{
+    if (storageSettings.S3StorageSettings == null)
+    {
+        Log.Fatal("Storage:S3StorageSettings is not configured, despite StorageType being set to S3");
+        await Log.CloseAndFlushAsync();
+        return 3;
+    }
+    
+    builder.Services.AddAWSService<IAmazonS3>();
+    builder.Services.AddSingleton<IStorage, S3Storage>();
+}
+
+builder.Services.AddSingleton<ThemeCacheEvictor>();
+builder.Services.AddHostedService<ThemeCacheEvictor>(sp => sp.GetRequiredService<ThemeCacheEvictor>());
+builder.Services.AddSingleton<ThemesProxyService>();
+builder.Services.AddHttpClient(ThemesProxyService.ThemesHttpClientName, x =>
+{
+    x.BaseAddress = new Uri("https://v.animethemes.moe");
+    x.Timeout = TimeSpan.FromSeconds(30);
+});
 
 var app = builder.Build();
 

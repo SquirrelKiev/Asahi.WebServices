@@ -32,7 +32,11 @@ public static partial class UrlSignature
         /// <summary>
         /// The generic proxy API.
         /// </summary>
-        Proxy
+        Proxy,
+        /// <summary>
+        /// The theme proxy API.
+        /// </summary>
+        ThemeProxy
     }
 
     /// <summary>
@@ -48,6 +52,7 @@ public static partial class UrlSignature
         {
             UrlSignaturePurposes.Thumbnail => "thumbnail",
             UrlSignaturePurposes.Proxy => "proxy",
+            UrlSignaturePurposes.ThemeProxy => "theme_proxy",
             _ => throw new ArgumentOutOfRangeException(nameof(purpose), purpose, null)
         };
 

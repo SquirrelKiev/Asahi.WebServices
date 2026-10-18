@@ -3,6 +3,7 @@ using Asahi.WebServices.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using NodaTime;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
@@ -20,6 +21,28 @@ namespace Asahi.WebServices.Core.Database.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Asahi.WebServices.Database.Models.CachedTheme", b =>
+                {
+                    b.Property<string>("ThemeSlug")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<Instant>("LastRetrievedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Instant>("SavedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("ThemeSlug");
+
+                    b.HasIndex("LastRetrievedAt");
+
+                    b.ToTable("CachedThemes");
+                });
 #pragma warning restore 612, 618
         }
     }
