@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.Reflection;
 using Asahi.WebServices;
+using Asahi.WebServices.Database;
 using Asahi.WebServices.Thumbnails;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 using Serilog;
@@ -45,9 +47,15 @@ builder.Services.ConfigureHttpClientDefaults(x =>
     });
 });
 
+builder.Services.AddDbContextFactory<AsahiDbContext>((services, options) =>
+{
+    options.UseNpgsql(services.GetRequiredService<IConfiguration>().GetConnectionString("Asahi.WebServices"),
+        x => x.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
+});
+
 builder.Services.AddControllers();
 
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks().AddDbContextCheck<AsahiDbContext>();
 
 builder.Services.AddOpenApi("v1", openApi =>
 {
@@ -64,7 +72,7 @@ builder.Services.AddOpenApi("v1", openApi =>
 });
 
 builder.Services.AddSerilog((services, lc) => lc
-    .ReadFrom.Configuration(builder.Configuration)
+    .ReadFrom.Configuration(services.GetRequiredService<IConfiguration>())
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()
     .WriteTo.Console(theme: AnsiConsoleTheme.Sixteen));
@@ -74,6 +82,11 @@ builder.Services.AddSingleton<ThumbnailGenerator>();
 builder.Services.AddSingleton<AllowedDomainsService>();
 
 var app = builder.Build();
+
+await using (var db = app.Services.GetRequiredService<IDbContextFactory<AsahiDbContext>>().CreateDbContext())
+{
+    await db.Database.MigrateAsync();
+}
 
 try
 {
@@ -99,6 +112,7 @@ try
     {
         throw new Exception("ffmpeg process never started. (More specifically, Process.Start returned null for whatever reason)");
     }
+
     await ffmpegVersionCheck.WaitForExitAsync();
     if (ffmpegVersionCheck.ExitCode != 0)
     {
